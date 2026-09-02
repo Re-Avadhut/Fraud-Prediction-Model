@@ -1,3 +1,5 @@
+## AI used to make this project.
+
 # Credit Card Fraud Detection
 
 Flask web app for checking whether a credit-card transaction is likely fraudulent using a trained scikit-learn model.
