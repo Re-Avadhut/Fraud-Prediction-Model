@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <main class="shell">
+        <section class="topbar">
+            <div>
+                <h1>Credit Card Fraud Detection</h1>
+                <p class="subtitle">Enter transaction features and check the model prediction.</p>
+            </div>
+            <div class="actions">
+                <button class="secondary" type="button" id="normalSample">Load Normal Sample</button>
+                <button class="secondary" type="button" id="fraudSample">Load Fraud Sample</button>
+            </div>
+        </section>
+
+        <section class="layout">
+            <form class="panel form-panel" id="transactionForm">
+                <div class="field-grid" id="fieldGrid"></div>
+                <div class="submit-row">
+                    <button type="submit">Check Transaction</button>
+                </div>
+            </form>
+
+            <aside class="panel result-panel">
+                <h2 class="result-status" id="resultTitle">Waiting for input</h2>
+                <span class="badge" id="resultBadge">No prediction yet</span>
+                <div class="metric-list">
+                    <div class="metric">
+                        <span>Fraud probability</span>
+                        <strong id="fraudProbability">-</strong>
+                    </div>
+                    <div class="metric">
+                        <span>Prediction confidence</span>
+                        <strong id="predictionConfidence">-</strong>
+                    </div>
+                    <div class="metric">
+                        <span>Threshold used</span>
+                        <strong id="thresholdUsed">-</strong>
+                    </div>
+                </div>
+                <div class="error" id="errorMessage"></div>
+            </aside>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
