@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.requests import Request
 
+from utils.config import CHOSEN_THRESHOLD
 from utils.preprocess import build_transaction_frame
 
 app = FastAPI(title="Credit Card Fraud Detection")
@@ -23,22 +24,27 @@ model = joblib.load(MODEL_PATH)
 scaler = joblib.load(SCALER_PATH)
 FEATURE_COLUMNS = list(scaler.feature_names_in_)
 
-CHOSEN_THRESHOLD = 0.95
-
 
 @app.get('/')
 def home(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
 
 
+@app.get('/feature-schema')
+def feature_schema():
+    return {"features": FEATURE_COLUMNS}
+
+
 @app.post('/check-transaction')
 def check_transaction(data: dict[str, float]):
-    df, missing_fields = build_transaction_frame(data, FEATURE_COLUMNS)
+    df, missing_fields, invalid_fields = build_transaction_frame(
+        data, FEATURE_COLUMNS)
 
-    if missing_fields:
+    if missing_fields or invalid_fields:
         return JSONResponse(status_code=400, content={
-            "error": "Missing required transaction fields",
-            "missing_fields": missing_fields
+            "error": "Missing or invalid transaction fields",
+            "missing_fields": missing_fields,
+            "invalid_fields": invalid_fields
         })
 
     # Scale the incoming data the same way training data was scaled
@@ -57,4 +63,4 @@ def check_transaction(data: dict[str, float]):
 
 
 if __name__ == '__main__':
-    uvicorn.run(app, host="127.0.0.1", port=5000, reload=True)
+    uvicorn.run("app:app", host="127.0.0.1", port=5000, reload=True)

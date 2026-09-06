@@ -1,9 +1,4 @@
-const fields = [
-    "Time", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9",
-    "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18",
-    "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27",
-    "V28", "Amount"
-];
+let fields = [];
 
 const samples = {
     normal: {"Time":0.0,"V1":-1.3598071337,"V2":-0.0727811733,"V3":2.536346738,"V4":1.3781552243,"V5":-0.3383207699,"V6":0.4623877778,"V7":0.2395985541,"V8":0.0986979013,"V9":0.3637869696,"V10":0.090794172,"V11":-0.5515995333,"V12":-0.6178008558,"V13":-0.9913898472,"V14":-0.3111693537,"V15":1.4681769721,"V16":-0.4704005253,"V17":0.2079712419,"V18":0.0257905802,"V19":0.4039929603,"V20":0.2514120982,"V21":-0.0183067779,"V22":0.2778375756,"V23":-0.1104739102,"V24":0.0669280749,"V25":0.1285393583,"V26":-0.1891148439,"V27":0.1335583767,"V28":-0.0210530535,"Amount":149.62},
@@ -18,8 +13,11 @@ const fraudProbability = document.getElementById("fraudProbability");
 const predictionConfidence = document.getElementById("predictionConfidence");
 const thresholdUsed = document.getElementById("thresholdUsed");
 const errorMessage = document.getElementById("errorMessage");
+const submitButton = form.querySelector("button[type='submit']");
 
-fields.forEach((field) => {
+function renderFields() {
+    fieldGrid.replaceChildren();
+    fields.forEach((field) => {
     const label = document.createElement("label");
     label.textContent = field;
 
@@ -31,11 +29,28 @@ fields.forEach((field) => {
 
     label.appendChild(input);
     fieldGrid.appendChild(label);
-});
+    });
+    submitButton.disabled = false;
+}
+
+async function initialize() {
+    try {
+        const response = await fetch("/feature-schema");
+        const schema = await response.json();
+        if (!response.ok || !Array.isArray(schema.features) || schema.features.length === 0) {
+            throw new Error("Could not load the transaction fields");
+        }
+        fields = schema.features;
+        renderFields();
+        loadSample(samples.normal);
+    } catch (error) {
+        errorMessage.textContent = error.message;
+    }
+}
 
 function loadSample(sample) {
     fields.forEach((field) => {
-        form.elements[field].value = sample[field];
+        form.elements[field].value = sample[field] ?? "";
     });
     errorMessage.textContent = "";
 }
@@ -66,11 +81,13 @@ form.addEventListener("submit", async (event) => {
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) {
-            throw new Error("Prediction request failed");
-        }
-
         const result = await response.json();
+        if (!response.ok) {
+            const invalid = result.invalid_fields?.join(", ");
+            const missing = result.missing_fields?.join(", ");
+            const detail = Array.isArray(result.detail) ? "Invalid request data" : result.detail;
+            throw new Error([result.error ?? detail, missing, invalid].filter(Boolean).join(": "));
+        }
         resultTitle.textContent = result.fraud ? "Fraud Detected" : "Transaction Looks Normal";
         resultBadge.className = result.fraud ? "badge danger" : "badge safe";
         resultBadge.textContent = result.fraud ? "High risk" : "Low risk";
@@ -85,4 +102,4 @@ form.addEventListener("submit", async (event) => {
     }
 });
 
-loadSample(samples.normal);
+initialize();
