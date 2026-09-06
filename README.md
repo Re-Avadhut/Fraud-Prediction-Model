@@ -1,6 +1,6 @@
 # Credit Card Fraud Detection
 
-Flask web app for checking whether a credit-card transaction is likely fraudulent using a trained scikit-learn model.
+FastAPI web app for checking whether a credit-card transaction is likely fraudulent using a trained scikit-learn model.
 
 ## Project Structure
 
@@ -47,7 +47,11 @@ The dataset is intentionally ignored by Git because it is large and should be do
 venv\Scripts\python.exe app.py
 ```
 
-Open `http://127.0.0.1:5000/`.
+The app runs with Uvicorn at `http://127.0.0.1:5000/`. For development, you can also run:
+
+```powershell
+venv\Scripts\python.exe -m uvicorn app:app --reload --port 5000
+```
 
 ## Retrain The Model
 

@@ -1,13 +1,22 @@
-from flask import Flask, request, jsonify, render_template
-import joblib
 from pathlib import Path
+
+import joblib
+import uvicorn
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from starlette.requests import Request
+
 from utils.preprocess import build_transaction_frame
 
-app = Flask(__name__)
+app = FastAPI(title="Credit Card Fraud Detection")
 
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "models" / "fraud_model.pkl"
 SCALER_PATH = BASE_DIR / "models" / "scaler.pkl"
+templates = Jinja2Templates(directory=BASE_DIR / "templates")
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 # Load the trained model and the scaler used during training
 model = joblib.load(MODEL_PATH)
@@ -17,21 +26,20 @@ FEATURE_COLUMNS = list(scaler.feature_names_in_)
 CHOSEN_THRESHOLD = 0.95
 
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+@app.get('/')
+def home(request: Request):
+    return templates.TemplateResponse(request=request, name="index.html")
 
 
-@app.route('/check-transaction', methods=['POST'])
-def check_transaction():
-    data = request.get_json()
+@app.post('/check-transaction')
+def check_transaction(data: dict[str, float]):
     df, missing_fields = build_transaction_frame(data, FEATURE_COLUMNS)
 
     if missing_fields:
-        return jsonify({
+        return JSONResponse(status_code=400, content={
             "error": "Missing required transaction fields",
             "missing_fields": missing_fields
-        }), 400
+        })
 
     # Scale the incoming data the same way training data was scaled
     df_scaled = scaler.transform(df)
@@ -40,13 +48,13 @@ def check_transaction():
     is_fraud = bool(fraud_probability >= CHOSEN_THRESHOLD)
     prediction_confidence = fraud_probability if is_fraud else 1 - fraud_probability
 
-    return jsonify({
+    return {
         "fraud": is_fraud,
         "fraud_probability": round(float(fraud_probability), 4),
         "prediction_confidence": round(float(prediction_confidence), 4),
         "threshold_used": CHOSEN_THRESHOLD
-    })
+    }
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    uvicorn.run(app, host="127.0.0.1", port=5000, reload=True)
